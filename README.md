@@ -1,6 +1,6 @@
 Hi Olumoye Wisdom,
 
-Hope you’re doing well too.
+Hope you’re doing well too
 
 Please find attached the requested zipped files containing:
 
