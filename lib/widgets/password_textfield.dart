@@ -21,6 +21,10 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
 
   @override
   Widget build(BuildContext context) {
+    double borderWidth = (Dimensions.width5 / Dimensions.width5);
+    if (borderWidth.isNegative || borderWidth == 0.0) {
+      borderWidth = 1.0; // Fallback to 1.0 if the calculation is invalid
+    }
     return TextField(
 
       controller: widget.controller,
@@ -40,14 +44,12 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Dimensions.radius10),
           borderSide: BorderSide(
-            width: Dimensions.width5 / Dimensions.width50,
             color: Theme.of(context).dividerColor,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Dimensions.radius10),
           borderSide: BorderSide(
-            width: Dimensions.width5 / Dimensions.width10,
             color: Theme.of(context).dividerColor,
 
           ),
@@ -55,7 +57,6 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Dimensions.radius10),
           borderSide: BorderSide(
-            width: Dimensions.width5 / Dimensions.width10,
             color: Theme.of(context).dividerColor,
 
           ),

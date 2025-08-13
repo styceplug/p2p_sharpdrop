@@ -10,7 +10,6 @@ import 'package:p2p_sharpdrop/widgets/snackbars.dart';
 import 'package:session_manager/session_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 import '../data/api/api_client.dart';
 import '../data/repo/user_repo.dart';
 import '../models/channel_model.dart';
@@ -21,74 +20,521 @@ class UserController extends GetxController {
   final UserRepo userRepo;
   final ApiClient apiClient;
 
-  UserController({
-    required this.userRepo,
-    required this.apiClient
-  });
+  UserController({required this.userRepo, required this.apiClient});
 
   var isLoading = false.obs;
   var userDetail = Rxn<UserModel>();
   RxList<UserModel> referralList = <UserModel>[].obs;
   var channels = <ChannelModel>[].obs;
   ChannelChatModel? chatData;
-  Rx<Map<String,ChannelChatModel>> chatDetails = Rx<Map<String,ChannelChatModel>>({});
+  Rx<Map<String, ChannelChatModel>> chatDetails =
+      Rx<Map<String, ChannelChatModel>>({});
+  RxMap<String, ChannelChatModel> chatDetail = <String, ChannelChatModel>{}.obs;
   var channelDetails = {}.obs;
   List<MessageModel> messages = [];
+  var isDeleting = false.obs;
+  Rx<ChannelChatModel?> selectedChat = Rx<ChannelChatModel?>(null);
+  // final RxList<ChannelModel> channelsWithChat = <ChannelModel>[].obs;
+  // final RxList<ChannelModel> channelsWithoutChat = <ChannelModel>[].obs;
+  final RxList<ChannelWithChatInfo> channelsWithChatInfo = <ChannelWithChatInfo>[].obs;
+  final RxList<ChannelModel> channelsWithoutChat = <ChannelModel>[].obs;
+  final RxList<ChannelWithChatInfo> searchChannelsWithChatInfo = <ChannelWithChatInfo>[].obs;
+  final RxList<ChannelModel> searchChannelsWithoutChat = <ChannelModel>[].obs;
+  var selectedAvatar = 'avatar1'.obs;
+  final RxList<ChannelModel> searchChannelList = <ChannelModel>[].obs;
 
-  void addTempMessage(String chatId, MessageModel message) {
-    chatDetails.value[chatId]?.messages.add(message);
-    update();
+  @override
+  void onInit() {
+    super.onInit();
+    _initChannelsAndChats();
+    loadSelectedAvatar();
   }
 
 
 
-  Future<void> fetchReferrals() async {
-    try {
-      final referralsData = await userRepo.getPersonalReferrals();
 
-      if (referralsData.isEmpty) {
-        print('🔻 No referrals found.');
-      } else {
-        // Map the fetched referral data to UserModel
-        referralList.value = referralsData.map((data) {
-          print('🔄 Referral data: $data');
-          return UserModel.fromJson(data); // Assuming your API returns JSON for each referral
-        }).toList();
+  void searchChannels(String query) {
+    if (query.trim().isEmpty) {
+      // Reset to original lists when search is empty
+      searchChannelList.value = channels.value;
+      searchChannelsWithChatInfo.value = channelsWithChatInfo.value;
+      searchChannelsWithoutChat.value = channelsWithoutChat.value;
+    } else {
+      final lowercaseQuery = query.toLowerCase();
 
-        print('📦 Referrals fetched: ${referralList.length} referrals');
-      }
-    } catch (e) {
-      print('❌ Error fetching referrals: $e');
+      // Search in channels with chat info
+      searchChannelsWithChatInfo.value = channelsWithChatInfo
+          .where((channelWithChat) =>
+          channelWithChat.channel.name.toLowerCase().contains(lowercaseQuery))
+          .toList();
+
+      // Search in channels without chat
+      searchChannelsWithoutChat.value = channelsWithoutChat
+          .where((channel) =>
+          channel.name.toLowerCase().contains(lowercaseQuery))
+          .toList();
+
+      // Update the combined search list
+      final combinedSearchResults = [
+        ...searchChannelsWithChatInfo.map((e) => e.channel),
+        ...searchChannelsWithoutChat
+      ];
+      searchChannelList.value = combinedSearchResults;
     }
   }
 
+  void searchChannelsAdvanced(String query) {
+    if (query.trim().isEmpty) {
+      // Reset to original lists when search is empty
+      searchChannelList.value = channels.value;
+      searchChannelsWithChatInfo.value = channelsWithChatInfo.value;
+      searchChannelsWithoutChat.value = channelsWithoutChat.value;
+    } else {
+      final lowercaseQuery = query.toLowerCase();
 
-  Future<void> getChannels() async {
-    try {
-      final Response response = await userRepo.getChannels();
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-      if (response.statusCode == 200) {
-        final responseBody = response.body;
-        if (responseBody['code'] == '00' && responseBody['data'] != null) {
-          channels.value = (responseBody['data'] as List)
-              .map((channelData) => ChannelModel.fromJson(channelData))
+      // Search in channels with chat info (search in multiple fields)
+      searchChannelsWithChatInfo.value = channelsWithChatInfo
+          .where((channelWithChat) {
+        final channel = channelWithChat.channel;
+        return channel.name.toLowerCase().contains(lowercaseQuery) ||
+            (channel.name?.toLowerCase().contains(lowercaseQuery) ?? false) ||
+            (channel.name?.toLowerCase().contains(lowercaseQuery) ?? false);
+      })
+          .toList();
+
+      // Search in channels without chat
+      searchChannelsWithoutChat.value = channelsWithoutChat
+          .where((channel) {
+        return channel.name.toLowerCase().contains(lowercaseQuery) ||
+            (channel.name?.toLowerCase().contains(lowercaseQuery) ?? false) ||
+            (channel.name?.toLowerCase().contains(lowercaseQuery) ?? false);
+      })
+          .toList();
+
+      // Update the combined search list
+      final combinedSearchResults = [
+        ...searchChannelsWithChatInfo.map((e) => e.channel),
+        ...searchChannelsWithoutChat
+      ];
+      searchChannelList.value = combinedSearchResults;
+    }
+  }
+
+  Future<void> getChannels({bool forceRefresh = false}) async {
+    print('🔄 getChannels called with forceRefresh: $forceRefresh');
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!forceRefresh && channels.isEmpty) {
+      print('📁 Checking cached channels...');
+
+      final cachedWithChat = prefs.getString('cachedChannelsWithChat');
+      final cachedWithoutChat = prefs.getString('cachedChannelsWithoutChat');
+
+      if (cachedWithChat != null && cachedWithoutChat != null) {
+        try {
+          print('📥 Found cached data. Attempting to decode...');
+
+          // Decode and parse channels with chat
+          final decodedWithChat = jsonDecode(cachedWithChat) as List;
+          channelsWithChatInfo.value = decodedWithChat
+              .map((e) => ChannelWithChatInfo.fromJson(e))
               .toList();
-        } else {
-          print('Failed to fetch channels: ${responseBody['message']}');
-          channels.value = [];
+          print('✅ Decoded channelsWithChat: ${channelsWithChatInfo.length}');
+
+          // Decode and parse channels without chat
+          final decodedWithoutChat = jsonDecode(cachedWithoutChat) as List;
+          channelsWithoutChat.value = decodedWithoutChat
+              .map((e) => ChannelModel.fromJson(e))
+              .toList();
+          print('✅ Decoded channelsWithoutChat: ${channelsWithoutChat.length}');
+
+          // Combine into full channel list
+          final allChannels = [
+            ...channelsWithChatInfo.map((e) => e.channel),
+            ...channelsWithoutChat
+          ];
+          channels.value = allChannels;
+          searchChannelList.value = allChannels;
+
+          // Initialize search lists
+          searchChannelsWithChatInfo.value = channelsWithChatInfo.value;
+          searchChannelsWithoutChat.value = channelsWithoutChat.value;
+
+          print('📦 Loaded ${allChannels.length} channels from cache');
+        } catch (e) {
+          print('❌ Failed to decode cached channels: $e');
         }
       } else {
-        print('Failed to fetch channels. Status code: ${response.statusCode}');
-        channels.value = [];
+        print('⚠️ No cached data found');
+      }
+    }
+
+    // Fetch from API
+    print('🌐 Fetching channels from server...');
+    try {
+      final response = await userRepo.getChannels();
+
+      print('📡 Response status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final responseBody = response.body;
+
+        if (responseBody['code'] == '00' && responseBody['data'] != null) {
+          print('✅ Server responded with valid data');
+
+          final data = responseBody['data'];
+
+          final withChatRaw = data['channelsWithChat'] as List<dynamic>;
+          final withoutChatRaw = data['channelsWithoutChat'] as List<dynamic>;
+
+          print('🧩 Raw withChat count: ${withChatRaw.length}');
+          print('🧩 Raw withoutChat count: ${withoutChatRaw.length}');
+
+          // Parse channels with chat
+          channelsWithChatInfo.value = withChatRaw
+              .map((e) => ChannelWithChatInfo.fromJson(e))
+              .toList();
+
+          // Parse channels without chat
+          channelsWithoutChat.value = withoutChatRaw
+              .map((e) => ChannelModel.fromJson(e))
+              .toList();
+
+          // Combine all
+          final allChannels = [
+            ...channelsWithChatInfo.map((e) => e.channel),
+            ...channelsWithoutChat
+          ];
+          channels.value = allChannels;
+          searchChannelList.value = allChannels;
+
+          // Initialize search lists
+          searchChannelsWithChatInfo.value = channelsWithChatInfo.value;
+          searchChannelsWithoutChat.value = channelsWithoutChat.value;
+
+          print('✅ Parsed channels: ${allChannels.length} total');
+          print('📁 Caching channels...');
+
+          // Cache fresh data
+          await prefs.setString(
+            'cachedChannelsWithChat',
+            jsonEncode(channelsWithChatInfo.map((e) => e.toJson()).toList()),
+          );
+          await prefs.setString(
+            'cachedChannelsWithoutChat',
+            jsonEncode(channelsWithoutChat.map((e) => e.toJson()).toList()),
+          );
+
+          print('💾 Successfully cached fresh channel data');
+        } else {
+          print('⚠️ Invalid response code or missing data: ${responseBody['code']}');
+        }
+      } else {
+        print('❌ Server responded with status code ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching channels: $e');
-      channels.value = [];
+      print('❌ Error fetching channels: $e');
     }
   }
 
 
+
+  Future<void> _initChannelsAndChats() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Step 1: Load channels from cache using the main getChannels method
+    await getChannels(forceRefresh: false);
+
+    // Step 2: Load each cached chat (if any)
+    for (var channelWithChat in channelsWithChatInfo) {
+      final chatCache = prefs.getString('chat_cache_${channelWithChat.channel.id}');
+      if (chatCache != null) {
+        try {
+          final decodedChat = jsonDecode(chatCache);
+          final chat = ChannelChatModel.fromJson(decodedChat);
+          chatDetails.value[channelWithChat.channel.id!] = chat;
+        } catch (e) {
+          print('❌ Failed to load cached chat for ${channelWithChat.channel.id}: $e');
+        }
+      }
+    }
+
+    update(); // ✅ Update UI immediately
+
+    // Step 3: Refresh everything in background
+    Future.microtask(() async {
+      await getChannels(forceRefresh: true);
+      for (var channelWithChat in channelsWithChatInfo) {
+        await getChannelChat(channelWithChat.channel.id!);
+      }
+      print('🔄 Refreshed channels and chats from network');
+    });
+  }
+
+  Future<void> loadSelectedAvatar() async {
+    final prefs = await SharedPreferences.getInstance();
+    final avatar = prefs.getString('selectedAvatar') ?? 'avatar1';
+    selectedAvatar.value = avatar;
+  }
+
+  void updateSelectedAvatar(String avatarName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedAvatar', avatarName);
+    selectedAvatar.value = avatarName;
+  }
+
+/*  Future<void> getChannels({bool forceRefresh = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!forceRefresh && channels.isEmpty) {
+      final cached = prefs.getString('cachedChannels');
+      if (cached != null) {
+        try {
+          final decoded = jsonDecode(cached) as List;
+          final cachedList =
+              decoded.map((e) => ChannelModel.fromJson(e)).toList();
+          channels.value = cachedList;
+          searchChannelList.value = cachedList;
+          print('📦 Loaded channels from cache');
+        } catch (e) {
+          print('❌ Failed to decode cached channels: $e');
+        }
+      }
+    }
+
+    try {
+      final response = await userRepo.getChannels();
+      if (response.statusCode == 200) {
+        final responseBody = response.body;
+
+        if (responseBody['code'] == '00' && responseBody['data'] != null) {
+          final data = responseBody['data'];
+
+          final withChatRaw = data['channelsWithChat'] as List<dynamic>;
+          final withoutChatRaw = data['channelsWithoutChat'] as List<dynamic>;
+
+          final allChannelsRaw = [...withChatRaw, ...withoutChatRaw];
+
+          final freshData =
+              allChannelsRaw.map((e) => ChannelModel.fromJson(e)).toList();
+          channels.value = freshData;
+          searchChannelList.value =
+              freshData; // update search list from fresh data
+
+          channelsWithChat.value =
+              withChatRaw.map((e) => ChannelModel.fromJson(e)).toList();
+          channelsWithoutChat.value =
+              withoutChatRaw.map((e) => ChannelModel.fromJson(e)).toList();
+
+          await prefs.setString('cachedChannels', jsonEncode(allChannelsRaw));
+          print('💾 Cached fresh channel data');
+        }
+      }
+    } catch (e) {
+      print('❌ Error fetching channels: $e');
+    }
+  }*/
+
+
+
+/*
+  Future<void> getChannels({bool forceRefresh = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!forceRefresh && channels.isEmpty) {
+      final cachedWithChat = prefs.getString('cachedChannelsWithChat');
+      final cachedWithoutChat = prefs.getString('cachedChannelsWithoutChat');
+
+      if (cachedWithChat != null && cachedWithoutChat != null) {
+        try {
+          // Load channels with chat info
+          final decodedWithChat = jsonDecode(cachedWithChat) as List;
+          channelsWithChatInfo.value = decodedWithChat
+              .map((e) => ChannelWithChatInfo.fromJson(e))
+              .toList();
+
+          // Load channels without chat
+          final decodedWithoutChat = jsonDecode(cachedWithoutChat) as List;
+          channelsWithoutChat.value = decodedWithoutChat
+              .map((e) => ChannelModel.fromJson(e))
+              .toList();
+
+          // Update main channels list
+          final allChannels = [
+            ...channelsWithChatInfo.map((e) => e.channel),
+            ...channelsWithoutChat
+          ];
+          channels.value = allChannels;
+          searchChannelList.value = allChannels;
+          print('📦 Loaded channels from cache');
+        } catch (e) {
+          print('❌ Failed to decode cached channels: $e');
+        }
+      }
+    }
+
+    try {
+      final response = await userRepo.getChannels();
+      if (response.statusCode == 200) {
+        final responseBody = response.body;
+
+        if (responseBody['code'] == '00' && responseBody['data'] != null) {
+          final data = responseBody['data'];
+
+          final withChatRaw = data['channelsWithChat'] as List<dynamic>;
+          final withoutChatRaw = data['channelsWithoutChat'] as List<dynamic>;
+
+          // Parse channels with chat info
+          channelsWithChatInfo.value = withChatRaw
+              .map((e) => ChannelWithChatInfo.fromJson(e))
+              .toList();
+
+          // Parse channels without chat
+          channelsWithoutChat.value = withoutChatRaw
+              .map((e) => ChannelModel.fromJson(e))
+              .toList();
+
+          // For the main channels list, combine all channels
+          final allChannels = [
+            ...channelsWithChatInfo.map((e) => e.channel),
+            ...channelsWithoutChat
+          ];
+
+          channels.value = allChannels;
+          searchChannelList.value = allChannels;
+
+          // Cache channels separately
+          await prefs.setString('cachedChannelsWithChat',
+              jsonEncode(channelsWithChatInfo.map((e) => e.toJson()).toList()));
+          await prefs.setString('cachedChannelsWithoutChat',
+              jsonEncode(channelsWithoutChat.map((e) => e.toJson()).toList()));
+
+          print('💾 Cached fresh channel data');
+        }
+      }
+    } catch (e) {
+      print('❌ Error fetching channels: $e');
+    }
+  }
+*/
+
+/*  Future<void> getChannels({bool forceRefresh = false}) async {
+    print('🔄 getChannels called with forceRefresh: $forceRefresh');
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!forceRefresh && channels.isEmpty) {
+      print('📁 Checking cached channels...');
+
+      final cachedWithChat = prefs.getString('cachedChannelsWithChat');
+      final cachedWithoutChat = prefs.getString('cachedChannelsWithoutChat');
+
+      if (cachedWithChat != null && cachedWithoutChat != null) {
+        try {
+          print('📥 Found cached data. Attempting to decode...');
+
+          // Decode and parse channels with chat
+          final decodedWithChat = jsonDecode(cachedWithChat) as List;
+          channelsWithChatInfo.value = decodedWithChat
+              .map((e) => ChannelWithChatInfo.fromJson(e))
+              .toList();
+          print('✅ Decoded channelsWithChat: ${channelsWithChatInfo.length}');
+
+          // Decode and parse channels without chat
+          final decodedWithoutChat = jsonDecode(cachedWithoutChat) as List;
+          channelsWithoutChat.value = decodedWithoutChat
+              .map((e) => ChannelModel.fromJson(e))
+              .toList();
+          print('✅ Decoded channelsWithoutChat: ${channelsWithoutChat.length}');
+
+          // Combine into full channel list
+          final allChannels = [
+            ...channelsWithChatInfo.map((e) => e.channel),
+            ...channelsWithoutChat
+          ];
+          channels.value = allChannels;
+          searchChannelList.value = allChannels;
+
+          print('📦 Loaded ${allChannels.length} channels from cache');
+        } catch (e) {
+          print('❌ Failed to decode cached channels: $e');
+        }
+      } else {
+        print('⚠️ No cached data found');
+      }
+    }
+
+    // Fetch from API
+    print('🌐 Fetching channels from server...');
+    try {
+      final response = await userRepo.getChannels();
+
+      print('📡 Response status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final responseBody = response.body;
+
+        if (responseBody['code'] == '00' && responseBody['data'] != null) {
+          print('✅ Server responded with valid data');
+
+          final data = responseBody['data'];
+
+          final withChatRaw = data['channelsWithChat'] as List<dynamic>;
+          final withoutChatRaw = data['channelsWithoutChat'] as List<dynamic>;
+
+          print('🧩 Raw withChat count: ${withChatRaw.length}');
+          print('🧩 Raw withoutChat count: ${withoutChatRaw.length}');
+
+          // Parse channels with chat
+          channelsWithChatInfo.value = withChatRaw
+              .map((e) => ChannelWithChatInfo.fromJson(e))
+              .toList();
+
+          // Parse channels without chat
+          channelsWithoutChat.value = withoutChatRaw
+              .map((e) => ChannelModel.fromJson(e))
+              .toList();
+
+          // Combine all
+          final allChannels = [
+            ...channelsWithChatInfo.map((e) => e.channel),
+            ...channelsWithoutChat
+          ];
+          channels.value = allChannels;
+          searchChannelList.value = allChannels;
+
+          print('✅ Parsed channels: ${allChannels.length} total');
+          print('📁 Caching channels...');
+
+          // Cache fresh data
+          await prefs.setString(
+            'cachedChannelsWithChat',
+            jsonEncode(channelsWithChatInfo.map((e) => e.toJson()).toList()),
+          );
+          await prefs.setString(
+            'cachedChannelsWithoutChat',
+            jsonEncode(channelsWithoutChat.map((e) => e.toJson()).toList()),
+          );
+
+          print('💾 Successfully cached fresh channel data');
+        } else {
+          print('⚠️ Invalid response code or missing data: ${responseBody['code']}');
+        }
+      } else {
+        print('❌ Server responded with status code ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error fetching channels: $e');
+    }
+  }
+
+  void searchChannels(String query) {
+    if (query.trim().isEmpty) {
+      searchChannelList.value = channels;
+    } else {
+      searchChannelList.value = channels
+          .where((channel) =>
+              channel.name.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    }
+  }*/
 
   Future<void> getUserDetails({bool forceRefresh = false}) async {
     try {
@@ -108,7 +554,8 @@ class UserController extends GetxController {
       // Make network request
       final response = await userRepo.getUserDetails();
       print('📦 Raw response: ${response.body}');
-      final body = response.body is String ? jsonDecode(response.body) : response.body;
+      final body =
+          response.body is String ? jsonDecode(response.body) : response.body;
       print('📬 Parsed response: $body');
 
       if (response.statusCode == 200 && body != null && body['code'] == '00') {
@@ -128,152 +575,135 @@ class UserController extends GetxController {
     }
   }
 
-
-  Future<void> fetchChannelChat(String channelId) async {
+  Future<void> fetchChannelChat(String channelId, {bool forceRefresh = false}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    // Check if cached data exists
-    String? cachedJson = prefs.getString('chat_cache_$channelId');
-
-    if (cachedJson != null) {
-      try {
-        final decoded = json.decode(cachedJson);
-        chatData = ChannelChatModel.fromJson(decoded);
-        update();
-        Get.toNamed(AppRoutes.messagingScreen, arguments: chatData);
-        return;
-      } catch (e) {
-        print("Error decoding cached data: $e");
+    if (!forceRefresh) {
+      String? cachedJson = prefs.getString('chat_cache_$channelId');
+      if (cachedJson != null) {
+        try {
+          final decoded = json.decode(cachedJson);
+          chatData = ChannelChatModel.fromJson(decoded);
+          update();
+          Get.toNamed(AppRoutes.messagingScreen, arguments: chatData);
+          return;
+        } catch (e) {
+          print("❌ Error decoding cached chat: $e");
+        }
       }
     }
 
-    // Fetch from API
     isLoading.value = true;
+    print('getting chat $channelId');
     final result = await userRepo.getChannelChat(channelId);
+    print('getting chat again $result');
     isLoading.value = false;
 
     if (result != null) {
-      // Save to SharedPreferences
       prefs.setString('chat_cache_$channelId', json.encode(result.toJson()));
-
       chatData = result;
       update();
       Get.toNamed(AppRoutes.messagingScreen, arguments: chatData);
     } else {
-      Get.snackbar("Error", "Failed to load chat channel");
+      // Get.snackbar("Error", "Failed to load chat channel");
+
     }
   }
 
 
+  void addTempMessage(String chatId, MessageModel message) {
+    chatDetails.value[chatId]?.messages.add(message);
+    selectedChat.value?.messages.add(message);
+    update();
+  }
 
-
-/*
-  Future<void> getChannelChat(String chatId) async {
-    isLoading(true);
-    print('Fetching chat details for chatId: $chatId');
+  Future<void> fetchReferrals() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(AppConstants.authToken) ?? '';
-      print('Retrieved auth token: $token');
-      String url = AppConstants.GET_CHAT_DETAILS.replaceAll('{chatId}', chatId);
-      print('Request URL: ${AppConstants.BASE_URL}$url');
-      final response = await http.get(
-        Uri.parse('${AppConstants.BASE_URL}$url'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-      print('Response Status Code: ${response.statusCode}');
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        print('Response Body: ${response.body}');
-        final chat = ChannelChatModel.fromJson(jsonResponse['data']);
-        print('Chat Data Parsed: $chat');
-        chatDetails.value = chat;
-        print('Messages: ${chat.messages}');
+      final referralsData = await userRepo.getPersonalReferrals();
+
+      if (referralsData.isEmpty) {
+        print('🔻 No referrals found.');
       } else {
-        Get.snackbar('Error', 'Failed to load chat details.');
-        print('Error: Failed to load chat details.');
+        // Map the fetched referral data to UserModel
+        referralList.value = referralsData.map((data) {
+          print('🔄 Referral data: $data');
+          return UserModel.fromJson(
+              data); // Assuming your API returns JSON for each referral
+        }).toList();
+
+        print('📦 Referrals fetched: ${referralList.length} referrals');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Something went wrong. Please try again.');
-      print('Error occurred: $e');
-    } finally {
-      isLoading(false);
-      print('Loading state set to false');
+      print('❌ Error fetching referrals: $e');
     }
   }
-*/
 
-  Future<ChannelChatModel?> getChannelChat(String chatId) async {
-    isLoading(true);
-    print('Fetching chat details for chatId: $chatId');
+  Future<void> getChannelChat(String chatId,
+      {bool forceRefresh = false}) async {
+    isLoading.value = true;
+    if (forceRefresh) update();
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(AppConstants.authToken) ?? '';
-      print('Retrieved auth token: $token');
-      String url = AppConstants.GET_CHAT_DETAILS.replaceAll('{chatId}', chatId);
-      print('Request URL: ${AppConstants.BASE_URL}$url');
-      final response = await http.get(
-        Uri.parse('${AppConstants.BASE_URL}$url'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-      print('Response Status Code: ${response.statusCode}');
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        print('Response Body: ${response.body}');
-        final chat = ChannelChatModel.fromJson(jsonResponse['data']);
-        chatDetails.value[chatId] = chat;
-        print('Came Messages: ${chatDetails.value[chatId]!.messages}');
+      final response = await userRepo.fetchChannelChatxx();
+      var chatD = response?.body;
+      // final chatD = await userRepo.fetchChannelChat(chatId);
+      var chat;
+
+      print('chatD: $chatD');
+
+      if (chatD != null) {
+        chat = (chatD['data'] as List<dynamic>).firstWhereOrNull((cd) {
+          print('object ${cd['_id']}');
+          print('compare to $chatId');
+          return cd['_id'] == chatId;
+        });
+      }
+      print('chat fetched: $chat');
+
+      if (chat != null) {
+        String actualChatId = chat?['_id'] ?? '';
+
+        print('actualChatId: $actualChatId');
+
+        chat = await userRepo.fetchChannelChatyy(actualChatId);
+
+        print('chat fetched again: $chat');
+
+        ChannelChatModel channelChatModel = ChannelChatModel.fromJson(chat);
+
+        print('channelChatModel $channelChatModel');
+
+        selectedChat.value = channelChatModel;
+        chatDetail[chatId] = channelChatModel;
+        chatDetail[actualChatId] = channelChatModel;
+        print('selectedChat is $selectedChat');
+        print('chatDetail is $chatDetail');
         update();
-        return chat; // ✅ return the chat
       } else {
-        // Get.snackbar('Error', 'Failed to load chat details.');
-        print('Error: Failed to load chat details.');
-        return null;
+        print('⚠️ No chat returned from API.');
       }
-    } catch (e,s) {
-      // Get.snackbar('Error', 'Something went wrong. Please try again.');
-      print('Error occurred: $e / $s');
-      return null;
+    } catch (e, s) {
+      print('❌ Controller Exception: $e\n$s');
     } finally {
-      isLoading(false);
-      print('Loading state set to false');
+      isLoading.value = false;
     }
   }
 
+  Future<void> deleteAccount() async {
+    isDeleting.value = true;
+    final response = await userRepo.deleteUserAccount();
+    isDeleting.value = false;
 
-
-
-
-
-}
-
-
-
-/* Future<void> getChannelById(String channelId) async {
-    isLoading(true);
-
-    try {
-      final response = await http.get(
-        Uri.parse('${AppConstants.BASE_URL}channel/$channelId'),
-        headers: {
-          'Authorization': 'Bearer ${'authToken'}', // Replace with actual token
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // Parse the response and set the channel details
-        final data = json.decode(response.body);
-        channelDetails.value = data;
-      } else {
-        Get.snackbar('Error', 'Failed to load channel details.');
-      }
-    } catch (e) {
-      Get.snackbar('Error', 'Something went wrong. Please try again.');
-    } finally {
-      isLoading(false);
+    if (response.statusCode == 200 && response.body['code'] == '00') {
+      // Clear token and navigate to welcome or login screen
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      Get.offAllNamed(AppRoutes.signinScreen);
+      MySnackBars.success(
+          title: 'Account Deleted', message: 'We hope to see you again soon');
+    } else {
+      Get.snackbar(
+          "Error", response.body['message'] ?? "Failed to delete account");
     }
-  }*/
+  }
+}

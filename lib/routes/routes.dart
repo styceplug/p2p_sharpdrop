@@ -1,9 +1,12 @@
 import 'package:get/get.dart';
 import 'package:p2p_sharpdrop/screens/auth_screen/create_pin.dart';
+import 'package:p2p_sharpdrop/screens/auth_screen/reset_password.dart';
 import 'package:p2p_sharpdrop/screens/auth_screen/signin_screen.dart';
 import 'package:p2p_sharpdrop/screens/auth_screen/signup_screen.dart';
+import 'package:p2p_sharpdrop/screens/main_screen/channels_screen.dart';
 import 'package:p2p_sharpdrop/screens/messaging_screen.dart';
 import 'package:p2p_sharpdrop/screens/my_referrals_screen.dart';
+import 'package:p2p_sharpdrop/screens/notification_screen.dart';
 import 'package:p2p_sharpdrop/screens/referral_screen.dart';
 import 'package:p2p_sharpdrop/screens/splash_onboard/onboarding_screen.dart';
 import 'package:p2p_sharpdrop/widgets/bottom_nav.dart';
@@ -20,6 +23,9 @@ class AppRoutes {
   static const String messagingScreen = '/messaging-screen';
   static const String referralScreen = '/referral-screen';
   static const String referralList = '/referral-list';
+  static const String notificationScreen = '/notification-screen';
+  static const String resetPassScreen = '/reset-pass-screen';
+  static const String channelsScreen = '/channels-screen';
 
 
 
@@ -85,6 +91,27 @@ class AppRoutes {
       name: referralList,
       page: () {
         return const MyReferralsScreen();
+      },
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: notificationScreen,
+      page: () {
+        return const NotificationScreen();
+      },
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: resetPassScreen,
+      page: () {
+        return const ResetPasswordScreen();
+      },
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: channelsScreen,
+      page: () {
+        return const ChannelsScreen();
       },
       transition: Transition.fadeIn,
     ),

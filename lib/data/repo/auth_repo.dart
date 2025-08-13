@@ -30,5 +30,22 @@ class AuthRepo {
     });
   }
 
+  Future<Response> requestOtp(String email) async {
+    final body = {
+      'email': email,
+    };
+
+    return await apiClient.postData(AppConstants.REQUEST_OTP, body);
+  }
+
+  Future<Response> resetPassword(String email, String otp, String password) async{
+    return await apiClient.postData(AppConstants.RESET_PASSWORD, {
+      "email": email,
+      "otp": otp,
+      "newPassword": password,
+    });
+
+  }
+
 
 }

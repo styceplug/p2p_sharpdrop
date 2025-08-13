@@ -40,7 +40,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
     final message = '''
 Hey! 👋 
 
-Join me on P2P Sharp Drop to trade crypto easily and securely.
+Join me on B2C Sharp Drop to trade crypto easily and securely.
 
 Use my referral code: $code to sign up and get bonuses!
 
@@ -71,7 +71,10 @@ Download now and let's earn together! 🚀
         iconTheme: IconThemeData(color: Theme.of(context).dividerColor),
       ),
       body: SingleChildScrollView(
-        child: Center(
+        child: Container(
+          height: Dimensions.screenHeight,
+          width: Dimensions.screenWidth,
+          alignment: Alignment.center,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -143,7 +146,7 @@ Download now and let's earn together! 🚀
                     ),
                     SizedBox(height: Dimensions.height30),
                     Text(
-                      'We are leading the industry with scheduled and attractive payouts. Drive traffic to P2P Sharp Drop and we will give you commission up to ₦1M for each user that becomes an active client.',
+                      'We are leading the industry with scheduled and attractive payouts. Drive traffic to B2C Sharp Drop and we will give you commission up to ₦1M for each user that becomes an active client.',
                       style: TextStyle(
                         color: Theme.of(context).hintColor,
                         fontSize: Dimensions.font15,

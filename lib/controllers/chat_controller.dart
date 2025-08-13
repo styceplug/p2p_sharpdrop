@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:p2p_sharpdrop/controllers/user_controller.dart';
 import 'package:p2p_sharpdrop/data/api/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:typed_data' show Uint8List;
+import 'package:http/http.dart' as http;
+
 
 import '../data/repo/chat_repo.dart';
 import '../models/channel_model.dart';
@@ -13,7 +17,7 @@ import '../models/message_model.dart';
 class ChatController extends GetxController {
   final ChatRepo chatRepo;
 
-  ChatController( {required this.chatRepo});
+  ChatController({required this.chatRepo});
 
   var isSending = false.obs;
   var messageText = ''.obs;
@@ -25,11 +29,14 @@ class ChatController extends GetxController {
   Rxn<File> selectedImage = Rxn<File>();
   RxBool isPreviewingImage = false.obs;
   var isUploading = false.obs;
+  Rx<Uint8List?> selectedImageBytes = Rx<Uint8List?>(null);
 
 
 
   Future<void> sendMessage(String chatId) async {
-    if (messageText.value.trim().isEmpty) return;
+    if (messageText.value
+        .trim()
+        .isEmpty) return;
     isSending.value = true;
     try {
       final response = await chatRepo.sendTextMessage(
@@ -40,19 +47,15 @@ class ChatController extends GetxController {
       print(response.statusCode);
       if (response.statusCode == 201 || response.body['code'] == '00') {
         final messageData = response.body['data'];
-        // final message = MessageModel.fromJson(messageData);
-       /* final updatedChat = userController.chatDetails.value;
-        if (updatedChat?.messages != null) {
-          updatedChat?.messages.add(message);
-        }
-        userController.chatDetails.value = updatedChat;*/
+
+
         print('Sent Successfully');
         messageText.value = '';
       } else {
         final message = response.body['message'] ?? "Server error occurred.";
         print(message);
       }
-    } catch (e,s) {
+    } catch (e, s) {
       isSending.value = false;
       Get.snackbar("Error", "Unexpected error: $e");
       print('Error inSending Message: ${e}, ${s}');
@@ -60,15 +63,12 @@ class ChatController extends GetxController {
   }
 
 
-
-
-
   void clearPreview() {
     selectedImage.value = null;
     isPreviewingImage.value = false;
   }
 
-  Future<void> pickImage() async {
+/*  Future<void> pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -76,6 +76,7 @@ class ChatController extends GetxController {
       isPreviewingImage.value = true;
     }
   }
+
   Future<void> sendPickedImage(String chatId) async {
     if (selectedImage.value == null) return;
     isUploading.value = true;
@@ -90,27 +91,50 @@ class ChatController extends GetxController {
     } else {
       print(response);
     }
-  }
-  Future<void> sendImage({
-    required String chatId,
-    required File imageFile,
-  }) async {
-    try {
-      isSendingImage.value = true;
-      final media = await chatRepo.sendImageMessage(
-        chatId: chatId,
-        imageFile: imageFile,
-      );
-      if (media != null) {
-        print('✅ Image uploaded successfully: ${media['data']['media']['url']}');
-        // Handle the response or update UI
+  }*/
+
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      if (kIsWeb) {
+        selectedImageBytes.value = await pickedFile.readAsBytes();
       } else {
-        print('⚠️ Media upload failed');
+        selectedImage.value = File(pickedFile.path);
       }
-    } catch (e) {
-      print('❌ Error while sending image: $e');
-    } finally {
-      isSendingImage.value = false;
+      isPreviewingImage.value = true;
     }
   }
+
+  Future<void> sendPickedImage(String chatId) async {
+    if (selectedImage.value == null && selectedImageBytes.value == null) return;
+
+    isUploading.value = true;
+
+    dynamic response;
+    if (kIsWeb && selectedImageBytes.value != null) {
+
+      response = await chatRepo.sendImageMessageBytes(
+        chatId: chatId,
+        imageBytes: selectedImageBytes.value!,
+      );
+    } else if (selectedImage.value != null) {
+
+      response = await chatRepo.sendImageMessage(
+        chatId: chatId,
+        imageFile: selectedImage.value!,
+      );
+    }
+
+    isUploading.value = false;
+
+    if (response != null && response['code'] == '00') {
+      await (chatId);
+      clearPreview();
+    } else {
+      print(response);
+    }
+  }
+
 }

@@ -1,6 +1,6 @@
 {
-    "name": "p2p_sharpdrop",
-    "short_name": "p2p_sharpdrop",
+    "name": "Sharp Drop - Digital Services",
+    "short_name": "Sharp Drop",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

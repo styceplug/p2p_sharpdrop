@@ -81,102 +81,106 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Container(
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.width20),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: Dimensions.height10 * 9),
-              Text(
-                'Sign Up',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              SizedBox(height: Dimensions.height10),
-              Text(
-                'Join a leading platform is P2P asset trading today',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              SizedBox(height: Dimensions.height20),
-              CustomTextField(
-                hintText: 'Enter First Name',
-                controller: firstNameController,
-              ),
-              SizedBox(height: Dimensions.height10),
-              CustomTextField(
-                hintText: 'Enter Last Name',
-                controller: lastNameController,
-              ),
-              SizedBox(height: Dimensions.height10),
-              CustomTextField(
-                hintText: 'Enter Email Address',
-                controller: mailController,
-              ),
-              SizedBox(height: Dimensions.height10),
-              CustomTextField(
-                hintText: 'Enter Whatsapp Number',
-                controller: phoneController,
-              ),
-              SizedBox(height: Dimensions.height10),
-              PasswordTextField(
-                controller: passController,
-              ),
-              SizedBox(height: Dimensions.height10),
-              PasswordTextField(
-                controller: confirmPassController,
-              ),
-              SizedBox(height: Dimensions.height10),
-              CustomTextField(
-                hintText: 'Referral Code (Optional)',
-                controller: refController,
-              ),
-              SizedBox(height: Dimensions.height10),
-              Row(
-                children: [
-                  InkWell(
-                      onTap: () {
-                        setState(() {
-                          termsAccepted = !termsAccepted;
-                        });
-                      },
-                      child: Icon(
-                          termsAccepted
-                              ? Icons.check_box
-                              : Icons.check_box_outline_blank_sharp,
-                          color: Theme.of(context).dividerColor)),
-                  SizedBox(width: Dimensions.width10),
-                  Text(
-                    'I accept the terms and privacy Policy',
-                    style: TextStyle(
-                      fontSize: Dimensions.font14,
-                      color: Theme.of(context).dividerColor,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: Dimensions.height20),
-              Obx(
-                () => CustomButton(
-                    text: authController.isLoading.value
-                        ? 'Creating User...'
-                        : 'Sign up Now',
-                    onPressed: () {
-                      authController.isLoading.value ? null : registerUser();
-                    }),
-              ),
-              SizedBox(height: Dimensions.height10),
-              InkWell(
-                  onTap: () {
-                    Get.toNamed(AppRoutes.signinScreen);
-                  },
-                  child: Text(
-                    'Already an existing user?, Sign in now',
-                    style: TextStyle(
-                        fontSize: Dimensions.font15,
+      body: SafeArea(
+        child: Container(
+          height: Dimensions.screenHeight,
+          width: Dimensions.screenWidth,
+          padding: EdgeInsets.symmetric(horizontal: Dimensions.width20),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: Dimensions.height10 * 9),
+                Text(
+                  'Sign Up',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                SizedBox(height: Dimensions.height10),
+                Text(
+                  'Join a leading platform in B2C asset trading today',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                SizedBox(height: Dimensions.height20),
+                CustomTextField(
+                  hintText: 'Enter First Name',
+                  controller: firstNameController,
+                ),
+                SizedBox(height: Dimensions.height10),
+                CustomTextField(
+                  hintText: 'Enter Last Name',
+                  controller: lastNameController,
+                ),
+                SizedBox(height: Dimensions.height10),
+                CustomTextField(
+                  hintText: 'Enter Email Address',
+                  controller: mailController,
+                ),
+                SizedBox(height: Dimensions.height10),
+                CustomTextField(
+                  hintText: 'Enter Whatsapp Number',
+                  controller: phoneController,
+                ),
+                SizedBox(height: Dimensions.height10),
+                PasswordTextField(
+                  controller: passController,
+                ),
+                SizedBox(height: Dimensions.height10),
+                PasswordTextField(
+                  controller: confirmPassController,
+                ),
+                SizedBox(height: Dimensions.height10),
+                CustomTextField(
+                  hintText: 'Referral Code (Optional)',
+                  controller: refController,
+                ),
+                SizedBox(height: Dimensions.height10),
+                Row(
+                  children: [
+                    InkWell(
+                        onTap: () {
+                          setState(() {
+                            termsAccepted = !termsAccepted;
+                          });
+                        },
+                        child: Icon(
+                            termsAccepted
+                                ? Icons.check_box
+                                : Icons.check_box_outline_blank_sharp,
+                            color: Theme.of(context).dividerColor)),
+                    SizedBox(width: Dimensions.width10),
+                    Text(
+                      'I accept the terms and privacy Policy',
+                      style: TextStyle(
+                        fontSize: Dimensions.font14,
                         color: Theme.of(context).dividerColor,
-                        fontWeight: FontWeight.w500),
-                  )),
-            ],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: Dimensions.height20),
+                Obx(
+                  () => CustomButton(
+                      text: authController.isLoading.value
+                          ? 'Creating User...'
+                          : 'Sign up Now',
+                      onPressed: () {
+                        authController.isLoading.value ? null : registerUser();
+                      }),
+                ),
+                SizedBox(height: Dimensions.height10),
+                InkWell(
+                    onTap: () {
+                      Get.toNamed(AppRoutes.signinScreen);
+                    },
+                    child: Text(
+                      'Already an existing user?, Sign in now',
+                      style: TextStyle(
+                          fontSize: Dimensions.font15,
+                          color: Theme.of(context).dividerColor,
+                          fontWeight: FontWeight.w500),
+                    )),
+              ],
+            ),
           ),
         ),
       ),

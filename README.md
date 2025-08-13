@@ -1,16 +1,20 @@
-# p2p_sharpdrop
+Hi Olumoye Wisdom,
 
-A new Flutter project.
+Hope you’re doing well too.
 
-## Getting Started
+Please find attached the requested zipped files containing:
 
-This project is a starting point for a Flutter application.
+1. Full source code (frontend & backend) for both admin and user app and a single zip containing source code for BE (Server setup and database)
+2. Server login details (SSH, control panel) — stored in the "server_credentials.txt" inside the zip.
+3. Database access credentials and a recent backup file.
+4. API keys and configuration files for the app (secured in the "config" folder).
+5. Push notification setup documentation.
+6. App Store & Play Store build files (.aab, .apk, .ipa).
+7. Any other required dependencies and documentation for running the app.
 
-A few resources to get you started if this is your first Flutter project:
+Everything is organized in labeled folders inside the zip for easier navigation.  
+If you need any clarification on the files or setup, let me know and I’ll walk you through it.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Best regards,  
+Oluwaferanmi Olotu  
+Project Manager – SharpDrop

@@ -22,7 +22,7 @@ class OnBoard {
 final List<OnBoard> demoData = [
   OnBoard(
     image: "assets/images/onboard1.png",
-    title: "Trade Crypto with P2P Sharp Drop",
+    title: "Trade Crypto with Sharp Drop",
     description:
         "Buy Crypto, Sell crypto, or trade gift cards seamlessly with instant support",
   ),
@@ -34,7 +34,7 @@ final List<OnBoard> demoData = [
   ),
   OnBoard(
     image: "assets/images/onboard3.png",
-    title: "Global P2P Marketplace",
+    title: "Global B2C Marketplace",
     description:
         "Connect with traders worldwide and get the best rates for your transactions",
   ),
@@ -87,6 +87,8 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        height: Dimensions.screenHeight,
+        width: Dimensions.screenWidth,
         padding: EdgeInsets.symmetric(horizontal: Dimensions.width20),
         // Background gradient
         decoration:  BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor),

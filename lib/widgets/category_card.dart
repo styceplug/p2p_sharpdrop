@@ -3,6 +3,8 @@ import 'package:p2p_sharpdrop/utils/dimensions.dart';
 
 class CategoryCard extends StatelessWidget {
   final String title;
+  final String lastMessage;
+  final String lastMessageTime;
   final Color color;
   final VoidCallback? onTap;
 
@@ -11,6 +13,8 @@ class CategoryCard extends StatelessWidget {
     required this.title,
     required this.color,
     this.onTap,
+    this.lastMessage = '',
+    this.lastMessageTime = '',
   });
 
   @override
@@ -32,25 +36,63 @@ class CategoryCard extends StatelessWidget {
           ),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
               height: Dimensions.height50,
               width: Dimensions.width50,
               decoration: BoxDecoration(
+                shape: BoxShape.circle,
                 color: color,
-                borderRadius: BorderRadius.circular(Dimensions.radius45),
+                // borderRadius: BorderRadius.circular(Dimensions.radius45),
               ),
             ),
             SizedBox(width: Dimensions.width20),
             Expanded(
-              child: Text(
-                title,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: Dimensions.font18,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).dividerColor,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Spacer(),
+                  Expanded(
+                    child: Text(
+                      title,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: Dimensions.font18,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          lastMessage,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: Dimensions.font13,
+                            fontWeight: FontWeight.w400,
+                            color: Theme.of(context).dividerColor,
+                          ),
+                        ),
+                        Text(
+                          lastMessageTime,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: Dimensions.font13,
+                            fontWeight: FontWeight.w400,
+                            color: Theme.of(context).dividerColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Spacer(),
+
+                ],
               ),
             ),
           ],

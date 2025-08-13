@@ -1,38 +1,168 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A new Flutter project.">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="p2p_sharpdrop">
+  <meta name="apple-mobile-web-app-title" content="SharpDrop - Digital Services">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>p2p_sharpdrop</title>
+  <title>SharpDrop - Digital Services</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      overflow: hidden;
+    }
+
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      position: relative;
+    }
+
+    .logo-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      position: relative;
+      z-index: 2;
+      background: white;
+      padding: 10px;
+    }
+
+    .circular-progress {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid #ffffff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      z-index: 1;
+    }
+
+    .loading-text {
+      color: white;
+      font-size: 18px;
+      font-weight: 500;
+      margin-top: 20px;
+      opacity: 0.9;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .loading-dots {
+      color: white;
+      font-size: 18px;
+      margin-top: 5px;
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
+    }
+
+    /* Fallback for when logo image fails to load */
+    .logo-fallback {
+      width: 80px;
+      height: 80px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 32px;
+      font-weight: bold;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Hide loading screen once Flutter loads */
+    body.flutter-loaded .loading-container {
+      opacity: 0;
+      transition: opacity 0.5s ease-out;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+<div class="loading-container" id="loading">
+  <div class="logo-container">
+    <div class="circular-progress"></div>
+    <!-- Try to load your logo, fallback to styled div if it fails -->
+    <img
+            src="assets/icon/icon.png"
+            alt="Sharp Drop Logo"
+            class="logo"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+    />
+    <div class="logo-fallback" style="display: none;">SD</div>
+  </div>
+  <div class="loading-text">Loading Sharp Drop</div>
+  <div class="loading-dots"></div>
+</div>
+
+<script>
+  // Hide loading screen once Flutter is ready
+  window.addEventListener('flutter-initialized', function() {
+    document.body.classList.add('flutter-loaded');
+    setTimeout(function() {
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement) {
+        loadingElement.remove();
+      }
+    }, 500);
+  });
+
+  // Fallback: Hide loading after 10 seconds even if Flutter doesn't signal ready
+  setTimeout(function() {
+    document.body.classList.add('flutter-loaded');
+    setTimeout(function() {
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement) {
+        loadingElement.remove();
+      }
+    }, 500);
+  }, 10000);
+</script>
+
+<script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

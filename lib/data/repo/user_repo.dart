@@ -87,7 +87,33 @@ class UserRepo {
   }
 
   Future<Response> getChannels() async {
-    return await apiClient.getData(AppConstants.GET_CHANNELS);
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+
+    if (token == null) {
+      return Response(statusCode: 401, statusText: 'Unauthorized: Token not found');
+    }
+
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    final uri = Uri.parse('${AppConstants.BASE_URL}${AppConstants.GET_CHANNELS}?isActive=true');
+
+    try {
+      final res = await http.get(uri, headers: headers);
+
+      return Response(
+        statusCode: res.statusCode,
+        body: jsonDecode(res.body),
+      );
+    } catch (e) {
+      return Response(
+        statusCode: 500,
+        statusText: 'Error: $e',
+      );
+    }
   }
 
   Future<ChannelChatModel?> getChannelChat(String channelId) async {
@@ -109,6 +135,142 @@ class UserRepo {
     }
   }
 
+  Future<ChannelChatModel?> fetchChannelChat(String chatId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken');
+
+      if (token == null || token.isEmpty) {
+        print('❌ No auth token found.');
+        return null;
+      }
+
+      final response = await apiClient.getData(
+        '/chat/v2/user/chat/$chatId',
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // final response = await apiClient.getData(
+      //   '/chat/v2/user/chat',
+      //   headers: {
+      //     'Authorization': 'Bearer $token',
+      //     'Content-Type': 'application/json',
+      //   },
+      // );
+
+      print('📡 GET: ${apiClient.baseUrl}/chat/v2/user/chat/$chatId');
+      print('📬 Status: ${response.statusCode}');
+      print('📦 Body: ${response.body}');
+
+      if (response.statusCode == 200 && response.body['code'] == '00') {
+        return ChannelChatModel.fromJson(response.body['data']);
+      } else {
+        print('❌ Server Error: ${response.body['message']}');
+        return null;
+      }
+    } catch (e, s) {
+      print('❌ Repo Exception: $e\n$s');
+      return null;
+    }
+  }
+
+
+  Future<dynamic> fetchChannelChatyy(String chatId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken');
+
+      if (token == null || token.isEmpty) {
+        print('❌ No auth token found.');
+        return null;
+      }
+
+      final response = await apiClient.getData(
+        '/chat/v2/user/chat/$chatId',
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // final response = await apiClient.getData(
+      //   '/chat/v2/user/chat',
+      //   headers: {
+      //     'Authorization': 'Bearer $token',
+      //     'Content-Type': 'application/json',
+      //   },
+      // );
+
+      print('📡 GET: ${apiClient.baseUrl}/chat/v2/user/chat/$chatId');
+      print('📬 Status: ${response.statusCode}');
+      print('📦 Body: ${response.body}');
+
+      if (response.statusCode == 200 && response.body['code'] == '00') {
+        return response.body['data'];
+      } else {
+        print('❌ Server Error: ${response.body['message']}');
+        return null;
+      }
+    } catch (e, s) {
+      print('❌ Repo Exception: $e\n$s');
+      return null;
+    }
+  }
+
+  Future<Response?> fetchChannelChatxx() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken');
+
+      if (token == null || token.isEmpty) {
+        print('❌ No auth token found.');
+        return null;
+      }
+
+
+
+      final response = await apiClient.getData(
+        '/chat/v2/user/chat',
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('📡 GET: ${apiClient.baseUrl}/chat/v2/user/chat');
+      print('📬 Status: ${response.statusCode}');
+      print('📦 Body: ${response.body}');
+
+      if (response.statusCode == 200 && response.body['code'] == '00') {
+        return response;
+      } else {
+        print('❌ Server Error: ${response.body['message']}');
+        return null;
+      }
+    } catch (e, s) {
+      print('❌ Repo Exception: $e\n$s');
+      return null;
+    }
+  }
+
+
+  Future<Response> deleteUserAccount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken') ?? '';
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      return await apiClient.deleteData('/user/profile/delete', headers: headers);
+    } catch (e) {
+      return Response(statusCode: 500, statusText: 'Error deleting account');
+    }
+  }
 
 
 }
